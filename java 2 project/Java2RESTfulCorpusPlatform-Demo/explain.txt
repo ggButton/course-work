@@ -1,0 +1,68 @@
+client:
+1. 输入格式：request xxxxx, request是：EXISTS, UPLOAD, LIST, DOWNLOAD, COMPARE（大小写都可）。
+EXISTS: exists fileName
+UPLOAD: upload fileName
+DOWNLOAD: download md5 (path/newName)
+COMPARE: compare file1_md5 file2_md5
+LIST: list
+
+URI码：
+exists: http://localhost:7001/files/md5/exists
+upload: http://localhost:7001/files/md5
+download: http://localhost:7001/files/md5
+compare: http://localhost:7001/files/md51/compare/md52
+list: http://localhost:7001/files
+
+2. 经过parseOperation(String op)变为Operation，进入switch
+3. 先让Document读入文件内容，再用Util转换dm5码，完善请求命令
+Document返回值是String content, md5码在client类方法里完成，
+EXISTS: md5, UPLOAD: md5,content, DOWNLOAD: md5, COMPARE: md5
+4. client类中方法完成类似DemoClient的功能，参数是args，request filePath格式
+responseString = Request.Get(endpoint+"/response/success").execute().returnContent().asString();
+Map<String, Object> successResponse = (Map<String, Object>)objectMapper.readValue(responseString, Map.class);
+对应的是server的返回ctx.json(response)，把response的三个field当作map的key
+5. 客户端返回：
+EXISTS: true/false
+UPLOAD: upload md5Name
+DOWNLOAD: download as xxxx.txt
+COMPARE:
+simple similarity: xxx
+Levenshtein	distance: xxxx
+LIST:
+md5: xxxx
+length: xxx
+preview: xxxx
+
+
+server:
+handle其实是TextService中方法
+
+TextService:
+·已获得ctx，最终目的是要返回ctx.json(response);
+·相关数据定义在Document里面
+1. app.get("/greet/:name", ctx -> {String name = ctx.pathParam("name");}), 用这种方式获得由客户端传入的参数
+2. 把参数传给DAO, 让DAO连接database获得结果。DAO返回结果：
+EXISTS: true/false
+UPLOAD: true/false message，对于上传需要先把文件里的内容读入，这部分由Document类来完成。
+LIST: 返回所有file记录
+DOWNLOAD: 返回文件内容给Document类，由其来新建文件夹
+COMPARE: 返回similarity和distance
+
+改进：
+1. 错误类型，扩充FailureCause中的枚举
+2. 客户端输入文件的名字/MD5均可
+3. 结构的总结，是否符合要求
+4. IOException的问题
+5. 下载过程中自定义名字和不自定义（可能存在问题，待运行时检验）ok
+
+GET     获取一个资源
+POST    添加一个资源
+PUT     修改一个资源
+DELETE  删除一个资源
+
+接下来：
+1、上传文件夹功能
+   不允许上传二进制格式，加判断
+
+2、修改用户端输出格式，tree的分解
+3、添加delete？
